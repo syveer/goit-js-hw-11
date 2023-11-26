@@ -1,6 +1,11 @@
 // main.js
-import { searchImages } from './api.js';
-import { showLoader, hideLoader, showError, showResults } from './ui.js';
+import { searchImages } from './partials/api.js';
+import {
+  showLoader,
+  hideLoader,
+  showError,
+  showResults,
+} from './partials/ui.js';
 
 document.addEventListener('DOMContentLoaded', () => {
   const searchForm = document.getElementById('search-form');

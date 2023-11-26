@@ -8,7 +8,7 @@ export async function searchImages(query, page = 1) {
   try {
     const response = await axios.get('https://pixabay.com/api/', {
       params: {
-        key: 'YOUR_PIXABAY_API_KEY',
+        key: '40912398-8d299132deed18abf6d973d7b',
         q: query,
         image_type: 'photo',
         orientation: 'horizontal',

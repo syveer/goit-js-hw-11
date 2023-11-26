@@ -1,4 +1,3 @@
-// ui.js
 import Notiflix from 'notiflix';
 
 export function showLoader() {
@@ -19,7 +18,7 @@ export function showError(message) {
 
 export function showResults(images) {
   const gallery = document.querySelector('.gallery');
-  gallery.innerHTML = ''; // Clear existing results
+  gallery.innerHTML = '';
 
   images.forEach(image => {
     const card = createImageCard(image);
