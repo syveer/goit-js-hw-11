@@ -1,34 +1,107 @@
-// main.js
-import { searchImages } from './partials/api.js';
-import {
-  showLoader,
-  hideLoader,
-  showError,
-  showResults,
-} from './partials/ui.js';
+import Notiflix from 'notiflix';
+import SimpleLightbox from 'simplelightbox';
+import 'simplelightbox/dist/simple-lightbox.min.css';
+import { fetchImages } from '../src/partials/api.js';
 
-document.addEventListener('DOMContentLoaded', () => {
-  const searchForm = document.getElementById('search-form');
+const form = document.getElementById('search-form');
+const gallery = document.querySelector('.gallery');
+const lightbox = new SimpleLightbox('.gallery a');
+let currentPage = 1;
+let loading = false;
 
-  searchForm.addEventListener('submit', async event => {
-    event.preventDefault();
+function createPhotoCard(image) {
+  return `
+    <div class="photo-card">
+      <a href="${image.largeImageURL}" data-lightbox="gallery">
+        <img src="${image.webformatURL}" alt="${image.tags}" loading="lazy">
+      </a>
+      <div class="info">
+        <p class="info-item"><b>Likes:</b> ${image.likes}</p>
+        <p class="info-item"><b>Views:</b> ${image.views}</p>
+        <p class="info-item"><b>Comments:</b> ${image.comments}</p>
+        <p class="info-item"><b>Downloads:</b> ${image.downloads}</p>
+      </div>
+    </div>
+  `;
+}
 
-    const searchInput = document.getElementById('search-query');
-    const query = searchInput.value.trim();
+function appendImagesToGallery(images) {
+  const cardsHTML = images.hits.map(createPhotoCard).join('');
+  gallery.insertAdjacentHTML('beforeend', cardsHTML);
+  lightbox.refresh();
+}
 
-    if (query === '') {
-      showError('Please enter a search query.');
-      return;
+function handleErrors(error) {
+  console.error('Error fetching images:', error);
+  Notiflix.Report.failure('Oops! Something went wrong. Please try again.');
+}
+
+async function loadMoreImages(query) {
+  try {
+    loading = true;
+    const response = await fetchImages(query, currentPage);
+    const { hits } = response;
+
+    if (hits.length === 0) {
+      Notiflix.Report.info(
+        "We're sorry, but you've reached the end of search results."
+      );
+    } else {
+      appendImagesToGallery(response);
+      currentPage++;
+      const { height: cardHeight } = document
+        .querySelector('.gallery')
+        .firstElementChild.getBoundingClientRect();
+      const scrollAmount = cardHeight * 1;
+
+      window.scrollBy({
+        top: scrollAmount,
+        behavior: 'smooth',
+      });
     }
+  } catch (error) {
+    handleErrors(error);
+  } finally {
+    loading = false;
+  }
+}
+
+form.addEventListener('submit', async function (event) {
+  event.preventDefault();
+  const searchQuery = event.target.searchQuery.value;
+
+  if (searchQuery) {
+    gallery.innerHTML = '';
+    currentPage = 1;
 
     try {
-      showLoader();
-      const results = await searchImages(query);
-      showResults(results.hits);
+      const response = await fetchImages(searchQuery, currentPage);
+      const { hits, totalHits } = response;
+
+      if (hits.length === 0) {
+        Notiflix.Report.info(
+          'Sorry, there are no images matching your search query. Please try again.'
+        );
+      } else {
+        appendImagesToGallery(response);
+        currentPage++;
+      }
+      Notiflix.Report.success(`Hooray! We found ${totalHits} images.`);
     } catch (error) {
-      showError('An error occurred while fetching images. Please try again.');
-    } finally {
-      hideLoader();
+      handleErrors(error);
     }
-  });
+  }
+});
+window.addEventListener('scroll', function () {
+  if (loading) return;
+
+  const scrollPosition = window.scrollY + window.innerHeight;
+  const pageHeight = document.body.scrollHeight;
+
+  if (scrollPosition >= pageHeight - 500) {
+    const searchQuery = form.searchQuery.value;
+    if (searchQuery) {
+      loadMoreImages(searchQuery);
+    }
+  }
 });
